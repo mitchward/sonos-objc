@@ -23,4 +23,7 @@
 // Returns a copy of all devices, coordinators + slaves
 - (NSArray *)allDevices;
 
+// Rediscovers all coordinators + slaves
+- (void)discoverControllers:(void (^)())completion;
+
 @end
