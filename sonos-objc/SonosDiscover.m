@@ -35,9 +35,15 @@ typedef void (^findDevicesBlock)(NSArray *ipAddresses);
                     NSHTTPURLResponse *hResponse = (NSHTTPURLResponse*)response;
                     if (hResponse.statusCode == 200){
                         NSDictionary *responseDictionary = [XMLReader dictionaryForXMLData:data error:&error];
-                        NSArray *inputDictionaryArray = responseDictionary[@"ZPSupportInfo"][@"ZonePlayers"][@"ZonePlayer"];
+                        NSObject *oneOrManyPlayers = responseDictionary[@"ZPSupportInfo"][@"ZonePlayers"][@"ZonePlayer"];
+                        NSArray *zonePlayers;
+                        if ([oneOrManyPlayers isKindOfClass:[NSArray class]]) {
+                            zonePlayers = (NSArray *)oneOrManyPlayers;
+                        } else {
+                            zonePlayers = [NSArray arrayWithObject:oneOrManyPlayers];
+                        }
                         
-                        for (NSDictionary *dictionary in inputDictionaryArray){
+                        for (NSDictionary *dictionary in zonePlayers){
                             NSString *name = dictionary[@"text"];
                             NSString *coordinator = dictionary[@"coordinator"];
                             NSString *uuid = dictionary[@"uuid"];
