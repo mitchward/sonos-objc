@@ -280,10 +280,12 @@
      soap_arguments:@"<InstanceID>0</InstanceID><Channel>Master</Channel>"
      completion:^(NSDictionary *response, NSError *error) {
          NSString *value = response[@"s:Envelope"][@"s:Body"][@"u:GetVolumeResponse"][@"CurrentVolume"][@"text"];
-         if([value isEqualToString:@""])
+         if([value length] == 0) {
              block(0, response, error);
-         else
+         }
+         else {
              block([value integerValue], response, nil);
+         }
      }];
 }
 
