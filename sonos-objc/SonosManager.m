@@ -55,14 +55,16 @@
         // Save all devices
         for(NSDictionary *device in devices) {
             SonosController *controller = [[SonosController alloc] initWithIP:[device valueForKey:@"ip"] port:[[device valueForKey:@"port"] intValue]];
-            [controller setGroup:[device valueForKey:@"group"]];
-            [controller setName:[device valueForKey:@"name"]];
-            [controller setUuid:[device valueForKey:@"uuid"]];
-            [controller setCoordinator:[[device valueForKey:@"coordinator"] boolValue]];
-            if([controller isCoordinator])
+            controller.group = device[@"group"];
+            controller.name = device[@"name"];
+            controller.uuid = device[@"uuid"];
+            controller.coordinator = [device[@"coordinator"] boolValue];
+            if([controller isCoordinator]) {
                 [coordinators addObject:controller];
-            else
+            }
+            else {
                 [slaves addObject:controller];
+            }
         }
         
         // Add slaves to masters
