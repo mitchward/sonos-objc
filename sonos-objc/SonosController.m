@@ -10,7 +10,25 @@
 #import <AFNetworking/AFNetworking.h>
 #import "XMLReader.h"
 
+#if !defined MAX
+#define MAX(a,b) \
+({ __typeof__ (a) __a = (a); \
+__typeof__ (b) __b = (b); \
+__a > __b ? __a : __b; })
+#endif
+
+#if !defined MIN
+#define MIN(a,b) \
+({ __typeof__ (a) __a = (a); \
+__typeof__ (b) __b = (b); \
+__a < __b ? __a : __b; })
+#endif
+
 @interface SonosController()
+
+@property (nonatomic, assign) NSInteger cachedVolume;
+@property (nonatomic, strong) NSDate *cachedVolumeDate;
+
 - (void)upnp:(NSString *)url soap_service:(NSString *)soap_service soap_action:(NSString *)soap_action soap_arguments:(NSString *)soap_arguments completion:(void (^)(NSDictionary *, NSError *))block;
 @end
 
@@ -272,7 +290,12 @@
     }
 }
 
-- (void)getVolume:(void (^)(NSInteger volume, NSDictionary *response, NSError *error))block {
+- (void)getVolume:(NSTimeInterval)maxCacheAge completion:(void (^)(NSInteger volume, NSDictionary *response, NSError *))block {
+    if (maxCacheAge > 0 && self.cachedVolumeDate && -[self.cachedVolumeDate timeIntervalSinceNow] <= maxCacheAge) {
+        block(self.cachedVolume, nil, nil);
+        return;
+    }
+    
     [self
      upnp:@"/MediaRenderer/RenderingControl/Control"
      soap_service:@"urn:schemas-upnp-org:service:RenderingControl:1"
@@ -284,18 +307,35 @@
              block(0, response, error);
          }
          else {
-             block([value integerValue], response, nil);
+             NSInteger volume = [value integerValue];
+             self.cachedVolume = volume;
+             self.cachedVolumeDate = [NSDate date];
+             block(volume, response, nil);
          }
      }];
 }
 
+- (void)getVolume:(void (^)(NSInteger volume, NSDictionary *response, NSError *))block {
+    return [self getVolume:0.0 completion:block];
+}
+
 - (void)setVolume:(NSInteger)volume completion:(void (^)(NSDictionary *reponse, NSError *error))block {
+    volume = MIN(MAX(volume, 0), 100);
+    
     [self
      upnp:@"/MediaRenderer/RenderingControl/Control"
      soap_service:@"urn:schemas-upnp-org:service:RenderingControl:1"
      soap_action:@"SetVolume"
      soap_arguments:[NSString stringWithFormat:@"<InstanceID>0</InstanceID><Channel>Master</Channel><DesiredVolume>%d</DesiredVolume>", volume]
-     completion:block];
+     completion:^(NSDictionary *response, NSError *error) {
+         if (!error) {
+             self.cachedVolume = volume;
+             self.cachedVolumeDate = [NSDate date];
+         }
+         if (block) {
+             block(response, error);
+         }
+     }];
 }
 
 - (void)getMute:(void (^)(BOOL mute, NSDictionary *reponse, NSError *error))block {

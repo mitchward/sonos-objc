@@ -147,11 +147,21 @@
 
 /**
  Get current volume of device.
- This method returns an NSInteger with the volume level (0-100)
+ This method passes an NSInteger with the volume level (0-100) to the block. Cached volume can be returned if maxCacheAge > 0.
+ 
+ @param maxCacheAge Allows for returning cached volume if the cached volume is not older than maxCacheAge (in seconds) otherwise a volume request is sent. Values <= 0 will always send volume get requests.
+ @param block Objective-C block to call on finish
+ */
+- (void)getVolume:(NSTimeInterval)maxCacheAge completion:(void (^)(NSInteger volume, NSDictionary *response, NSError *))block;
+
+/**
+ Get current volume of device.
+ This method returns an NSInteger with the volume level (0-100) to the block. Volume is always requested.
  
  @param block Objective-C block to call on finish
  */
 - (void)getVolume:(void (^)(NSInteger volume, NSDictionary *response, NSError *))block;
+
 
 /**
  Set volume of device
