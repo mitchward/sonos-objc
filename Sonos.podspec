@@ -1,14 +1,14 @@
 Pod::Spec.new do |s|
-  s.name         = "sonos-objc"
-  s.version      = "0.1.2"
+  s.name         = "Sonos"
+  s.version      = "0.1.3"
   s.description      = <<-EOL
     The aim of this library is to create a simple to use, yet useful API to control Sonos Devices via SOAP. It depends on AFNetworking (iOS and OS X), CocoaAsyncSocket (iOS and OS X) and XMLReader.h/m (iOS and OS X)
   EOL
   s.summary  = "An Objective-C API for controlling Sonos Devices."
-  s.homepage     = "https://github.com/n1mda/sonos-objc"
+  s.homepage     = "https://github.com/getsenic/sonos-objc"
   s.license      = 'MIT'
-  s.author       = { "n1mda" => "axel@appreviation.se" }
-  s.source       = { :git => "https://github.com/n1mda/sonos-objc.git", :tag => s.version.to_s }
+  s.author       = { "n1mda" => "axel@appreviation.se", "Lars Blumberg" => "lars@senic.com" }
+  s.source       = { :git => "https://github.com/getSenic/sonos-objc.git", :tag => s.version.to_s }
 
   s.ios.deployment_target = '7.0'
   s.osx.deployment_target = '10.9'
@@ -17,6 +17,6 @@ Pod::Spec.new do |s|
   s.source_files = 'sonos-objc/**/*.{h,m}'
 
   s.public_header_files = 'sonos-objc/**/*.h'
-  s.dependency 'AFNetworking', '2.0.3'
-  s.dependency 'CocoaAsyncSocket', '7.3.3'
+  s.dependency 'AFNetworking', '~> 2.0'
+  s.dependency 'CocoaAsyncSocket', '~> 7.3'
 end
