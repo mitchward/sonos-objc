@@ -22,11 +22,11 @@
 }
 
 - (id)initWithIP:(NSString *)ip_ port:(int)port_ {
-    self = [super init];
-    
-    self.ip = ip_;
-    self.port = port_;
-    self.slaves = [[NSMutableArray alloc] init];
+    if (self = [super init]) {
+        _ip = ip_;
+        _port = port_;
+        _slaves = [[NSMutableArray alloc] init];
+    }
     
     return self;
 }
