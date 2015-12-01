@@ -162,13 +162,23 @@
  */
 - (void)getVolume:(void (^)(NSInteger volume, NSDictionary *response, NSError *))block;
 
+/**
+ Set volume of device.
+ 
+ @param volume The volume (0-100)
+ @param mergeRequests If YES, following volume set requests are not send as long as this request has not been answered. Instead all following setVolume calls will only update the internal state for the desired volume. A second set request for all merged calls to setVolume is then send out when this request has been answered. This avoids multiple set requests being sent out at the same time. If YES, getVolume will also return the internal state for the desired volume to be set, as long as this set request has not yet been answered. Setting mergeRequest to YES allows a smoother user experience when otherwise too many volume set requests would be sent out in parallel and thus arrive very delayed at the Sonos controllers. Consider combining merging the set requests with allowing for returning cached volumes in getVolume to provide the best user experience.
+ @param block Objective-C block to call on finish
+ */
+- (void)setVolume:(NSInteger)volume mergeRequests:(BOOL)mergeRequest completion:(void (^)(NSDictionary *response, NSError *error))block;
 
 /**
- Set volume of device
+ Set volume of device.
+ Does not merge volume set requests.
  
  @param volume The volume (0-100)
  @param block Objective-C block to call on finish
  */
+
 - (void)setVolume:(NSInteger)volume completion:(void (^)(NSDictionary *response, NSError *error))block;
 
 /**

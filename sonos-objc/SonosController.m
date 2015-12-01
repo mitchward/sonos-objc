@@ -28,6 +28,8 @@ __a < __b ? __a : __b; })
 
 @property (nonatomic, assign) NSInteger cachedVolume;
 @property (nonatomic, strong) NSDate *cachedVolumeDate;
+@property (nonatomic, assign) NSInteger pendingVolume;
+@property (nonatomic, assign) BOOL volumeSetRequestPending;
 
 - (void)upnp:(NSString *)url soap_service:(NSString *)soap_service soap_action:(NSString *)soap_action soap_arguments:(NSString *)soap_arguments completion:(void (^)(NSDictionary *, NSError *))block;
 @end
@@ -291,6 +293,11 @@ __a < __b ? __a : __b; })
 }
 
 - (void)getVolume:(NSTimeInterval)maxCacheAge completion:(void (^)(NSInteger volume, NSDictionary *response, NSError *))block {
+    if (self.volumeSetRequestPending) {
+        block(self.pendingVolume, nil, nil);
+        return;
+    }
+
     if (maxCacheAge > 0 && self.cachedVolumeDate && -[self.cachedVolumeDate timeIntervalSinceNow] <= maxCacheAge) {
         block(self.cachedVolume, nil, nil);
         return;
@@ -319,23 +326,40 @@ __a < __b ? __a : __b; })
     return [self getVolume:0.0 completion:block];
 }
 
-- (void)setVolume:(NSInteger)volume completion:(void (^)(NSDictionary *reponse, NSError *error))block {
+- (void)setVolume:(NSInteger)volume mergeRequests:(BOOL)mergeRequests completion:(void (^)(NSDictionary *response, NSError *error))block {
     volume = MIN(MAX(volume, 0), 100);
-    
+
+    self.pendingVolume = volume;
+    if (mergeRequests && self.volumeSetRequestPending) {
+        if (block) {
+            block(nil, nil);
+        }
+        return;
+    }
+
     [self
      upnp:@"/MediaRenderer/RenderingControl/Control"
      soap_service:@"urn:schemas-upnp-org:service:RenderingControl:1"
      soap_action:@"SetVolume"
      soap_arguments:[NSString stringWithFormat:@"<InstanceID>0</InstanceID><Channel>Master</Channel><DesiredVolume>%d</DesiredVolume>", volume]
      completion:^(NSDictionary *response, NSError *error) {
+         self.volumeSetRequestPending = false;
          if (!error) {
              self.cachedVolume = volume;
              self.cachedVolumeDate = [NSDate date];
+         }
+         if (mergeRequests && self.pendingVolume != volume) {
+             [self setVolume:self.pendingVolume mergeRequests:YES completion:nil];
          }
          if (block) {
              block(response, error);
          }
      }];
+    self.volumeSetRequestPending = mergeRequests;
+}
+
+- (void)setVolume:(NSInteger)volume completion:(void (^)(NSDictionary *reponse, NSError *error))block {
+    [self setVolume:volume mergeRequests:NO completion:block];
 }
 
 - (void)getMute:(void (^)(BOOL mute, NSDictionary *reponse, NSError *error))block {
