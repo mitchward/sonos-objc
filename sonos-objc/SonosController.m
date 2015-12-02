@@ -26,7 +26,7 @@ __a < __b ? __a : __b; })
 
 @interface SonosController()
 
-@property (nonatomic, assign) NSInteger cachedVolume;
+@property (nonatomic, assign, readwrite) NSInteger cachedVolume;
 @property (nonatomic, strong) NSDate *cachedVolumeDate;
 @property (nonatomic, assign) NSInteger pendingVolume;
 @property (nonatomic, assign) BOOL volumeSetRequestPending;

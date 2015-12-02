@@ -37,6 +37,7 @@
 @property (nonatomic, strong) NSString *uuid;
 @property (nonatomic, assign, getter = isCoordinator) BOOL coordinator;
 @property (nonatomic, strong) NSMutableArray *slaves;
+@property (nonatomic, assign, readonly) NSInteger cachedVolume;
 
 /**
  Creates and returns a Sonos Controller object.
