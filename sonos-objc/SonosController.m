@@ -500,7 +500,9 @@ __a < __b ? __a : __b; })
                 block(nil, error);
                 return;
             }
-            NSDictionary *returnData = @{@"CurrentTransportState" : response[@"s:Envelope"][@"s:Body"][@"u:GetTransportInfoResponse"][@"CurrentTransportState"][@"text"]};
+
+            NSString *transportState = response[@"s:Envelope"][@"s:Body"][@"u:GetTransportInfoResponse"][@"CurrentTransportState"][@"text"];
+            NSDictionary *returnData = transportState ? @{@"CurrentTransportState" : transportState} : @{};
             block(returnData, nil);
     }];
 }
