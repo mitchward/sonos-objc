@@ -152,10 +152,13 @@ __a < __b ? __a : __b; })
      soap_action:@"Seek"
      soap_arguments:[NSString stringWithFormat:@"<InstanceID>0</InstanceID><Unit>TRACK_NR</Unit><Target>%d</Target>", position]
      completion:^(NSDictionary *response, NSError *error){
-         if(error && block)
-             block(response, error);
-         else
-             [self play:nil completion:block];
+         if(error) {
+             if(block) {
+                 block(response, error);
+             }
+             return;
+         }
+         [self play:nil completion:block];
      }];
 }
 
@@ -173,13 +176,15 @@ __a < __b ? __a : __b; })
     [self playbackStatus:^(BOOL playing, NSDictionary *response, NSError *error){
         if(playing)
             [self pause:^(NSDictionary *response, NSError *error){
-                if(error) block(NO, nil, error);
-                block(NO, response, nil);
+                if(block) {
+                    block(NO, response, error);
+                }
             }];
         else
             [self play:nil completion:^(NSDictionary *response, NSError *error){
-                if(error) block(NO, nil, error);
-                block(YES, response, error);
+                if(block) {
+                    block(!error, response, error);
+                }
             }];
     }];
 }
@@ -214,10 +219,13 @@ __a < __b ? __a : __b; })
 - (void)queue:(NSString *)track replace:(BOOL)replace completion:(void (^)(NSDictionary *reponse, NSError *error))block {
     if(replace) {
         [self clearQueue:^(NSDictionary *response, NSError *error){
-            if(error && block)
-                block(response, error);
-            else
-                [self queue:track replace:NO completion:block];
+            if(error) {
+                if(block) {
+                    block(response, error);
+                }
+                return;
+            }
+            [self queue:track replace:NO completion:block];
         }];
     } else {
         [self
@@ -232,10 +240,13 @@ __a < __b ? __a : __b; })
 - (void)queue:(NSString *)track URIMetaData:(NSString *)URIMetaData replace:(BOOL)replace completion:(void (^)(NSDictionary *reponse, NSError *error))block {
     if(replace) {
         [self clearQueue:^(NSDictionary *response, NSError *error){
-            if(error && block)
-                block(response, error);
-            else
-                [self queue:track URIMetaData:URIMetaData replace:NO completion:block];
+            if(error) {
+                if(block) {
+                    block(response, error);
+                }
+                return;
+            }
+            [self queue:track URIMetaData:URIMetaData replace:NO completion:block];
         }];
     } else {
         [self
@@ -268,9 +279,11 @@ __a < __b ? __a : __b; })
         [self clearQueue:^(NSDictionary *response, NSError *error){
             if(error) {
                 NSLog(@"Error clearing queue: %@", error.localizedDescription);
-                if(block)
+                if(block) {
                     block(response, error);
-            } else {
+                    return;
+                }
+            }
                 
                 [self
                  upnp:@"/MediaRenderer/AVTransport/Control"
@@ -278,8 +291,7 @@ __a < __b ? __a : __b; })
                  soap_action:@"AddURIToQueue"
                  soap_arguments:[NSString stringWithFormat:@"<InstanceID>0</InstanceID><EnqueuedURI>x-rincon-cpcontainer:10060a6cspotify%%3auser%%3a%@%%3aplaylist%%3a%@</EnqueuedURI><EnqueuedURIMetaData>%@</EnqueuedURIMetaData><DesiredFirstTrackNumberEnqueued>0</DesiredFirstTrackNumberEnqueued><EnqueueAsNext>0</EnqueueAsNext>", playlistOwner, playlistID, meta]
                  completion:block];
-                
-            }
+
         }];
         
     } else {
@@ -294,12 +306,16 @@ __a < __b ? __a : __b; })
 
 - (void)getVolume:(NSTimeInterval)maxCacheAge completion:(void (^)(NSInteger volume, NSDictionary *response, NSError *))block {
     if (self.volumeSetRequestPending) {
-        block(self.pendingVolume, nil, nil);
+        if(block) {
+            block(self.pendingVolume, nil, nil);
+        }
         return;
     }
 
     if (maxCacheAge > 0 && self.cachedVolumeDate && -[self.cachedVolumeDate timeIntervalSinceNow] <= maxCacheAge) {
-        block(self.cachedVolume, nil, nil);
+        if(block) {
+            block(self.cachedVolume, nil, nil);
+        }
         return;
     }
     
@@ -310,7 +326,7 @@ __a < __b ? __a : __b; })
      soap_arguments:@"<InstanceID>0</InstanceID><Channel>Master</Channel>"
      completion:^(NSDictionary *response, NSError *error) {
          NSString *value = response[@"s:Envelope"][@"s:Body"][@"u:GetVolumeResponse"][@"CurrentVolume"][@"text"];
-         if([value length] == 0) {
+         if(error || ([value length] == 0)) {
              block(0, response, error);
          }
          else {
@@ -369,13 +385,17 @@ __a < __b ? __a : __b; })
      soap_action:@"GetMute"
      soap_arguments:@"<InstanceID>0</InstanceID><Channel>Master</Channel>"
      completion:^(NSDictionary *response, NSError *error) {
-         if(block) {
-             if(error) block(NO, response, error);
-             
+         if(!block) {
+             return;
+         }
+         if(error) {
+            block(NO, response, error);
+            return;
+        }
+
              NSString *stateStr = response[@"s:Envelope"][@"s:Body"][@"u:GetMuteResponse"][@"CurrentMute"][@"text"];
              BOOL state = [stateStr isEqualToString:@"1"] ? TRUE : FALSE;
              block(state, response, nil);
-         }
      }];
 }
 
@@ -395,7 +415,13 @@ __a < __b ? __a : __b; })
      soap_action:@"GetPositionInfo"
      soap_arguments:@"<InstanceID>0</InstanceID>"
      completion:^(NSDictionary *response, NSError *error) {
-         if(error) block(nil, nil, nil, nil, 0, 0, 0, nil, nil, error);
+         if(!block) {
+             return;
+         }
+         if(error) {
+             block(nil, nil, nil, nil, 0, 0, 0, nil, nil, error);
+             return;
+         }
          
          NSDictionary *positionInfoResponse = response[@"s:Envelope"][@"s:Body"][@"u:GetPositionInfoResponse"];
          NSDictionary *trackMetaData = [XMLReader dictionaryForXMLString:positionInfoResponse[@"TrackMetaData"][@"text"] error:nil];
@@ -443,13 +469,19 @@ __a < __b ? __a : __b; })
 
 - (void)playbackStatus:(void (^)(BOOL playing, NSDictionary*, NSError *error))block {
     [self status:^(NSDictionary *response, NSError *error){
-        if(block && error)
+        if(!block) {
+            return;
+        }
+        if(error) {
             block(NO, nil, error);
-        if(block) {
+            return;
+        }
             NSString *playState = response[@"CurrentTransportState"];
             if([playState isEqualToString:@"PLAYING"])
                 block(YES, response, nil);
             else if([playState isEqualToString:@"PAUSED_PLAYBACK"] || [playState isEqualToString:@"STOPPED"])
+                block(NO, response, nil);
+            else {
                 block(NO, response, nil);
         }
     }];
@@ -462,11 +494,15 @@ __a < __b ? __a : __b; })
      soap_action:@"GetTransportInfo"
      soap_arguments:@"<InstanceID>0</InstanceID>"
      completion:^(NSDictionary *response, NSError *error) {
-         if(block) {
-             if(error) block(nil, error);
+         if(!block) {
+             return;
+         }
+         if(error) {
+             block(nil, error);
+             return;
+         }
              NSDictionary *returnData = @{@"CurrentTransportState" : response[@"s:Envelope"][@"s:Body"][@"u:GetTransportInfoResponse"][@"CurrentTransportState"][@"text"]};
              block(returnData, nil);
-         }
      }];
 }
 
@@ -477,8 +513,14 @@ __a < __b ? __a : __b; })
      soap_action:@"Browse"
      soap_arguments:@"<ObjectID>Q:0</ObjectID><BrowseFlag>BrowseDirectChildren</BrowseFlag><Filter>*</Filter><StartingIndex>0</StartingIndex><RequestedCount>0</RequestedCount><SortCriteria></SortCriteria>"
      completion:^(NSDictionary *response, NSError *error) {
-         if(block) {
-             if(error) block(nil, error);
+         if(!block) {
+             return;
+         }
+         if(error) {
+             block(nil, error);
+             return;
+         }
+
              NSMutableDictionary *returnData = [NSMutableDictionary dictionaryWithObjectsAndKeys:response[@"s:Envelope"][@"s:Body"][@"u:BrowseResponse"][@"TotalMatches"][@"text"], @"TotalMatches", nil];
              
              NSDictionary *queue = [XMLReader dictionaryForXMLString:response[@"s:Envelope"][@"s:Body"][@"u:BrowseResponse"][@"Result"][@"text"] error:nil];
@@ -514,7 +556,6 @@ __a < __b ? __a : __b; })
              [returnData setObject:queue_items forKey:@"QueueItems"];
              
              block(returnData, nil);
-         }
      }];
 }
 
