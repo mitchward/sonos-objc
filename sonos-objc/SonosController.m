@@ -26,6 +26,7 @@ __a < __b ? __a : __b; })
 
 @interface SonosController()
 
+@property (nonatomic, strong) AFHTTPSessionManager *httpSessionManager;
 @property (nonatomic, assign, readwrite) NSInteger cachedVolume;
 @property (nonatomic, strong) NSDate *cachedVolumeDate;
 @property (nonatomic, assign) NSInteger pendingVolume;
@@ -46,6 +47,8 @@ __a < __b ? __a : __b; })
         _ip = ip_;
         _port = port_;
         _slaves = [[NSMutableArray alloc] init];
+        _httpSessionManager = [[AFHTTPSessionManager alloc] initWithSessionConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
+        _httpSessionManager.responseSerializer = [[AFHTTPResponseSerializer alloc] init];
     }
     
     return self;
@@ -75,22 +78,14 @@ __a < __b ? __a : __b; })
     
     // Set Body
     [request setHTTPBody:[post_xml dataUsingEncoding:NSUTF8StringEncoding]];
-    
-    AFHTTPRequestOperation *requestOperation = [[AFHTTPRequestOperation alloc] initWithRequest:request];
-    [requestOperation
-        setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-            if(block) {
-                NSDictionary *response = [XMLReader dictionaryForXMLData:responseObject error:nil];
-                block(response, nil);
-            }
+
+    NSURLSessionDataTask *dataTask = [self.httpSessionManager dataTaskWithRequest:request completionHandler:^(NSURLResponse *response, id responseObject, NSError *error) {
+        if (block) {
+            NSDictionary *responseDictionary = (!error) ? [XMLReader dictionaryForXMLData:responseObject error:nil] : nil;
+            block(responseDictionary, error);
         }
-        failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-            if(block) {
-                block(nil, error);
-            }
-        }];
-    
-    [requestOperation start];
+    }];
+    [dataTask resume];
 }
 
 - (void)play:(NSString *)track completion:(void (^)(NSDictionary *response, NSError *error))block {
